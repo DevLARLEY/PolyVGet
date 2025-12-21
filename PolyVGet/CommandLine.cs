@@ -15,13 +15,13 @@ public static class CommandLine
     private static readonly Argument<string> CookieArgument = new("cookie", "Cookie required for requesting token") { Arity = ArgumentArity.ZeroOrOne };
 
     private static readonly Option SubtitlesOption = new Option<bool>(["--subtitles", "-s"], () => false, "Download the video's subtitles");
-    private static readonly Option MaxThreadsOption = new Option<int>(["--max-threads", "-t"], () => 16, "Maximum number of threads");
+    private static readonly Option MaxThreadsOption = new Option<int>(["--max-threads", "-t"], () => 4, "Maximum number of threads");
     private static readonly Option OutputDirectoryOption = new Option<string>(["--output-directory", "-o"], () => ".", "Output directory");
     private static readonly Option LogLevelOption = new Option<LogLevel>(["--log-level", "-l"], () => LogLevel.Info, "Level of log output");
     
     public static Parser GetBuilder()
     {
-        var rootCommand = new RootCommand("Download a video protected by PolyV v1104/v12/v13")
+        var rootCommand = new RootCommand("Modular PolyV (Version 11, 12, 13) Downloader written in C#")
         {
             Handler = CommandHandler.Create<string, string, string, bool, int, string, LogLevel>(HandleCommandAsync)
         };
@@ -35,7 +35,7 @@ public static class CommandLine
         rootCommand.AddOption(OutputDirectoryOption);
         rootCommand.AddOption(LogLevelOption);
 
-        var servicesString = "Services:\n" +
+        var servicesString = "Service names and their cookie names:\n" +
                              string.Join("\n", PolyVGet.Services
                                  .Select(s => s())
                                  .Select(service => $"  {service.Name()}: {service.CookieName()}"));

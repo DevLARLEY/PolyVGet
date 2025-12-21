@@ -86,16 +86,17 @@ public class PolyV13 : IPolyVImpl
     
     private static byte[] CaesarShift(byte[] inputBytes, int mhShift)
     {
-        var size = inputBytes.Length;
-        var output = new byte[size];
+        var output = new byte[inputBytes.Length];
+        const int shift = 97;
 
-        for (var i = 0; i < size; i++)
+        for (var i = 0; i < inputBytes.Length; i++)
         {
             var inputByte = inputBytes[i];
-
-            var shift = inputByte is < 65 or > 90 ? 97 : 65;
-            var shifted = (mhShift + inputByte - shift) % 26;
             
+            var shifted = (mhShift + inputByte - shift) % 26;
+            if (shifted < 0) 
+                shifted += 26;
+
             output[i] = (byte)(shift + shifted);
         }
 
