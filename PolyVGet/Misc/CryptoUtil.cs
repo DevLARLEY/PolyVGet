@@ -80,6 +80,25 @@ public static class CryptoUtil
         return result.ToString();
     }
     
+    public static byte[] CaesarShift(byte[] inputBytes, int mhShift)
+    {
+        var output = new byte[inputBytes.Length];
+        const int shift = 97;
+
+        for (var i = 0; i < inputBytes.Length; i++)
+        {
+            var inputByte = inputBytes[i];
+            
+            var shifted = (mhShift + inputByte - shift) % 26;
+            if (shifted < 0) 
+                shifted += 26;
+
+            output[i] = (byte)(shift + shifted);
+        }
+
+        return output;
+    }
+    
      private static int FindNextNalUnit(byte[] data, int start)
     {
         var length = data.Length;

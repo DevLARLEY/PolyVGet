@@ -83,30 +83,11 @@ public class PolyV13 : IPolyVImpl
 
         return unshuffled;
     }
-    
-    private static byte[] CaesarShift(byte[] inputBytes, int mhShift)
-    {
-        var output = new byte[inputBytes.Length];
-        const int shift = 97;
-
-        for (var i = 0; i < inputBytes.Length; i++)
-        {
-            var inputByte = inputBytes[i];
-            
-            var shifted = (mhShift + inputByte - shift) % 26;
-            if (shifted < 0) 
-                shifted += 26;
-
-            output[i] = (byte)(shift + shifted);
-        }
-
-        return output;
-    }
 
     public byte[] DecryptKey(byte[] key, int mh, string token)
     {
         var mhHash = MD5.HashData(mh.ToString().Encode()).ToHex();
-        var shiftedKey = CaesarShift(mhHash.Encode(), mh);
+        var shiftedKey = CryptoUtil.CaesarShift(mhHash.Encode(), mh);
 
         var unshuffledToken = CryptoUtil.UnshuffleToken(token);
         var tokenHash = MD5.HashData(unshuffledToken.Encode()).ToHex();

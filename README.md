@@ -11,7 +11,7 @@ dotnet publish -c Release
 ### Running
 The downloader requires both a PolyV video URI and token found in the network tab:
 + Video URI: In the URL of this request: `https://player.polyv.net/secure/<HERE>.json`
-+ Token: Response of a request similar to this: `https://.../polyv/polyv_get_token.php?video_id=123456`
++ Token: In the URL query of this request: `https://hls.videocc.net/playsafe/../../../...key?token=<HERE>`
 
 Then run:
 ```shell
