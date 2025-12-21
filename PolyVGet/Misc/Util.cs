@@ -8,7 +8,7 @@ using MediaFormatLibrary.Mpeg2.PES;
 using MediaFormatLibrary.Mpeg2.PES.Enums;
 using MediaFormatLibrary.Mpeg2.PSI;
 
-namespace PolyVGet;
+namespace PolyVGet.Misc;
 
 public static class Util
 {
@@ -19,14 +19,14 @@ public static class Util
     
     public static byte[] DecryptAesCbc(byte[] key, byte[] iv, byte[] encryptedData)
     {
-        using Aes aes = Aes.Create();
+        using var aes = Aes.Create();
         
         aes.Key = key;
         aes.IV = iv;
         aes.Mode = CipherMode.CBC;
         aes.Padding = PaddingMode.PKCS7;
 
-        using ICryptoTransform cryptoTransform = aes.CreateDecryptor();
+        using var cryptoTransform = aes.CreateDecryptor();
         
         return cryptoTransform.TransformFinalBlock(encryptedData, 0, encryptedData.Length);
     }
@@ -84,14 +84,14 @@ public static class Util
         return attributes;
     }
     
-    public static (List<string> Fragments, string? KeyUrl, byte[]? Iv) ParsePlaylist(string content)
+    public static Playlist ParsePlaylist(string content)
     {
         var fragments = new List<string>();
         
         string? keyUrl = null;
         byte[]? iv = null;
         
-        using StringReader reader = new StringReader(content);
+        using var reader = new StringReader(content);
         while (reader.ReadLine() is { } line)
         {
             if (line.StartsWith("#EXT-X-KEY:"))
@@ -106,7 +106,12 @@ public static class Util
             }
         }
 
-        return (fragments, keyUrl, iv);
+        return new Playlist
+        {
+            Fragments = fragments,
+            KeyUrl = keyUrl,
+            Iv = iv
+        };
     }
 
     public static string ParseToken(string token)
@@ -117,7 +122,7 @@ public static class Util
     
     public static string ModifyKeyUrl(string originalUrl, string path, string token)
     {
-        Uri uri = new Uri(originalUrl);
+        var uri = new Uri(originalUrl);
 
         var uriBuilder = new UriBuilder(uri)
         {
@@ -131,9 +136,12 @@ public static class Util
         return uriBuilder.Uri.ToString();
     }
 
-    public static void MergeFiles(string baseDir, string tempDir, string fileName)
+    /// <summary>
+    /// Marge all tempDir/*.bin into a file "baseDir/fileName" sorted based on file name as int
+    /// </summary>
+    public static void MergeFiles(string filesDir, string outFile)
     {
-        var files = Directory.GetFiles(tempDir, "*.bin")
+        var files = Directory.GetFiles(filesDir, "*.bin")
             .Select(f => new
             {
                 Path = f,
@@ -144,7 +152,7 @@ public static class Util
             .Select(f => f.Path)
             .ToList();
 
-        using var output = File.Create(Path.Combine(baseDir, fileName));
+        using var output = File.Create(outFile);
         foreach (var file in files)
         {
             using var input = File.OpenRead(file);
@@ -155,7 +163,7 @@ public static class Util
     public static IEnumerable<(T Item, int Index)> WithIndex<T>(this IEnumerable<T> source)
     {
         var index = 0;
-        foreach (T item in source)
+        foreach (var item in source)
         {
             yield return (item, index++);
         }
@@ -166,7 +174,7 @@ public static class Util
         const string cipherChars = "lpmkenjibhuvgycftxdrzsoawq0126783459";
         const string plainChars = "abcdofghijklnmepqrstuvwxyz0123456789";
         
-        StringBuilder result = new StringBuilder();
+        var result = new StringBuilder();
         
         foreach (var currentChar in encodedString)
         {

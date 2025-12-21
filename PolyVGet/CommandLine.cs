@@ -3,6 +3,7 @@ using System.CommandLine.Builder;
 using System.CommandLine.Help;
 using System.CommandLine.NamingConventionBinder;
 using System.CommandLine.Parsing;
+using PolyVGet.Misc;
 using Spectre.Console;
 
 namespace PolyVGet;
@@ -16,12 +17,13 @@ public static class CommandLine
     private static readonly Option SubtitlesOption = new Option<bool>(["--subtitles", "-s"], () => false, "Download the video's subtitles");
     private static readonly Option MaxThreadsOption = new Option<int>(["--max-threads", "-t"], () => 16, "Maximum number of threads");
     private static readonly Option OutputDirectoryOption = new Option<string>(["--output-directory", "-o"], () => ".", "Output directory");
+    private static readonly Option LogLevelOption = new Option<LogLevel>(["--log-level", "-l"], () => LogLevel.Info, "Level of log output");
     
     public static Parser GetBuilder()
     {
-        var rootCommand = new RootCommand("Download a video protected by PolyV")
+        var rootCommand = new RootCommand("Download a video protected by PolyV v1104/v12/v13")
         {
-            Handler = CommandHandler.Create<string, string, string, bool, int, string>(HandleCommandAsync)
+            Handler = CommandHandler.Create<string, string, string, bool, int, string, LogLevel>(HandleCommandAsync)
         };
 
         rootCommand.AddArgument(ServiceArgument);
@@ -31,8 +33,12 @@ public static class CommandLine
         rootCommand.AddOption(SubtitlesOption);
         rootCommand.AddOption(MaxThreadsOption);
         rootCommand.AddOption(OutputDirectoryOption);
+        rootCommand.AddOption(LogLevelOption);
 
-        var servicesString = "Services:\n" + string.Join("\n", PolyVGet.GetServices().Select(service => $"  {service.Item1}: {service.Item2}").ToList());
+        var servicesString = "Services:\n" +
+                             string.Join("\n", PolyVGet.Services
+                                 .Select(s => s())
+                                 .Select(service => $"  {service.Name()}: {service.CookieName()}"));
         
         var builder = new CommandLineBuilder(rootCommand)
             .UseDefaults()
@@ -47,19 +53,29 @@ public static class CommandLine
         return builder;
     }
     
-    private static async Task HandleCommandAsync(string service, string videoId, string cookie, bool subtitles, int maxThreads, string outputDirectory) 
+    private static async Task HandleCommandAsync(string service, string videoId, string cookie, bool subtitles, int maxThreads, string outputDirectory, LogLevel logLevel)
     {
-        var polyV = PolyVGet.WithService(service, videoId, cookie, outputDirectory);
-        await polyV.Initialize();
+        Logger.LogLevel = logLevel;
 
-        var qualities = polyV.GetQualities();
-        
-        var videoQuality = qualities.Count > 1 
-            ? AnsiConsole.Prompt(new SelectionPrompt<string>()
-                .Title("Select a video quality:")
-                .AddChoices(polyV.GetQualities())) 
-            : qualities.First();
+        try
+        {
+            var polyV = PolyVGet.WithService(service, videoId, cookie, outputDirectory);
+            await polyV.Initialize();
 
-        await polyV.Download(videoQuality, maxThreads, subtitles);
+            var qualities = polyV.PolyVClient.VideoJson.Resolution;
+
+            var videoQuality = qualities.Count > 1
+                ? AnsiConsole.Prompt(new SelectionPrompt<string>().Title("Select quality:").AddChoices(qualities))
+                : qualities.First();
+
+            await polyV.Download(videoQuality, maxThreads, subtitles);
+        }
+        catch (Exception e)
+        {
+            if (Logger.LogLevel == LogLevel.Debug)
+                throw;
+
+            Logger.LogFatal(e.Message);
+        }
     }
 }

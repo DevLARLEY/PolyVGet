@@ -1,6 +1,6 @@
-﻿namespace PolyVGet.polyv;
+﻿namespace PolyVGet.PolyV;
 
-public interface IPolyV
+public interface IPolyVImpl
 {
     public byte[] DecryptKey(byte[] key, int mh, string token);
     

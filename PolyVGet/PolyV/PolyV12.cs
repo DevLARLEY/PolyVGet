@@ -1,14 +1,23 @@
 ﻿using System.Security.Cryptography;
-using System.Text;
+using PolyVGet.Misc;
 
-namespace PolyVGet.polyv;
+namespace PolyVGet.PolyV;
 
-public class PolyV11 : IPolyV
+public class PolyV12 : IPolyVImpl
 {
-    private const string Md5Salt = "FgzVfucSJUWkSIPYgiua";
-    
+    private const string Md5Salt = "iKcowVkGYiyczqnndwzP";
     private static readonly byte[] KeyIv = [1, 2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 7, 5, 3, 2, 1];
+    
+    private const string HeaderKeyConstant = "ZDRhYzA1ZDktNTMxZi00YjNiLTk4OGUtMzQ2MDIyODc2YzI1#";
+    private readonly byte[] _headerKey;
+    private readonly byte[] _headerIv = [1, 1, 2, 1, 1, 3, 1, 5, 1, 7, 1, 9, 11, 13, 7, 2];
 
+    public PolyV12()
+    {
+        var constantHash = MD5.HashData(HeaderKeyConstant.Encode()).ToHex();
+        _headerKey = constantHash.Substring(3, 16).Encode();
+    }
+    
     private static byte[] UnshuffleKey(byte[] shuffled)
     {
         const int size = 16;
@@ -32,7 +41,7 @@ public class PolyV11 : IPolyV
 
         return unshuffled;
     }
-
+    
     private static byte[] UnshuffleHash(byte[] shuffled)
     {
         const int size = 32;
@@ -41,8 +50,8 @@ public class PolyV11 : IPolyV
             throw new ArgumentException($"Shuffled hash must be {size} bytes long");
         
         int[] indices = [
-            0,  6, 12, 18, 24, 30,  1,  5, 
-            7, 11, 13, 17, 19, 23, 25, 29, 
+            0,   6, 12, 18, 24, 30,  1,  5, 
+            7,  11, 13, 17, 19, 23, 25, 29, 
             31,  2,  4,  8, 10, 14, 16, 20, 
             22, 26, 28,  3,  9, 15, 21, 27
         ];
@@ -56,24 +65,6 @@ public class PolyV11 : IPolyV
 
         return unshuffled;
     }
-    
-    /*private static byte[] CaesarShift(byte[] inputBytes, int mhShift)
-    {
-        var size = inputBytes.Length;
-        var output = new byte[size];
-
-        for (var i = 0; i < size; i++)
-        {
-            var inputByte = inputBytes[i];
-
-            var shift = inputByte - 65 < 26 ? 65 : 97;
-            var shifted = (mhShift + inputByte - shift) % 26;
-            
-            output[i] = (byte)(shift + shifted);
-        }
-
-        return output;
-    }*/
     
     private static byte[] CaesarShift(byte[] inputBytes, int mhShift)
     {
@@ -95,22 +86,25 @@ public class PolyV11 : IPolyV
     
     public byte[] DecryptKey(byte[] key, int mh, string token)
     {
-        var mhHash = MD5.HashData([..Md5Salt.Encode(), ..mh.ToString().Encode()]).ToHex();
+        var mhHash = MD5.HashData(mh.ToString().Encode()).ToHex();
         var shiftedKey = CaesarShift(mhHash.Encode(), mh);
 
         var unshuffledToken = Util.UnshuffleToken(token);
         var tokenHash = MD5.HashData(unshuffledToken.Encode()).ToHex();
         var unshuffledTokenHash = UnshuffleHash(tokenHash.Encode());
 
-        var keyHash = MD5.HashData([..Md5Salt.Encode(), ..shiftedKey, ..unshuffledTokenHash]).ToHex();
-        var decryptedKey = Util.DecryptAesCbc(keyHash.Substring(7, 16).Encode(), KeyIv, key);
+        var keyHash = MD5.HashData([..Md5Salt.Encode(), ..unshuffledTokenHash, ..shiftedKey]).ToHex();
+        var decryptedKey = Util.DecryptAesCbc(keyHash.Substring(4, 16).Encode(), KeyIv, key);
         var unshuffledKey = UnshuffleKey(decryptedKey);
         
         return unshuffledKey;
     }
-
+    
     public byte[] DecryptFile(byte[] key, byte[] iv, byte[] encryptedData, int fragmentIndex)
     {
-        return Util.DecryptAesCbc(key, iv, encryptedData);
+        var decrypted = Util.DecryptAesCbc(key, iv, encryptedData);
+        var headerDecrypted = Util.DecryptHeader(decrypted, _headerKey, _headerIv, fragmentIndex, 960);
+
+        return headerDecrypted;
     }
 }

@@ -1,4 +1,4 @@
-﻿namespace PolyVGet.services;
+﻿namespace PolyVGet.Services;
 
 public interface IService
 {

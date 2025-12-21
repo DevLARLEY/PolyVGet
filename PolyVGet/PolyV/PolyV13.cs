@@ -1,9 +1,9 @@
-﻿using System.Diagnostics;
-using System.Security.Cryptography;
+﻿using System.Security.Cryptography;
+using PolyVGet.Misc;
 
-namespace PolyVGet.polyv;
+namespace PolyVGet.PolyV;
 
-public class PolyV13 : IPolyV
+public class PolyV13 : IPolyVImpl
 {
     private const string Md5Salt = "bWztsdNi0XOa3q8D";
     private static readonly byte[] KeyIv = [1, 2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 7, 5, 3, 2, 1];
