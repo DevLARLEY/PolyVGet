@@ -2,14 +2,14 @@
 
 namespace PolyVGet.Misc;
 
-public class WingFoxVideoUriData
+public class VideoUriData
 {
     public required string VideoVid { get; set; }
 }
 
-public class WingFoxVideoUri
+public class VideoUri
 {
-    public required WingFoxVideoUriData Data { get; set; }
+    public required VideoUriData Data { get; set; }
 }
 
 public class JsonResponse
@@ -38,7 +38,7 @@ public class VideoJson
     public List<Srt>? Srt { get; set; }
 }
 
-[JsonSerializable(typeof(WingFoxVideoUri))]
+[JsonSerializable(typeof(VideoUri))]
 [JsonSerializable(typeof(JsonResponse))]
 [JsonSerializable(typeof(VideoJson))]
 public partial class JsonContext : JsonSerializerContext;

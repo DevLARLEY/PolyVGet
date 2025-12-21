@@ -1,9 +1,6 @@
 ﻿## PolyVGet
 
-Modular PolyV (Version 11, 12, 13) Downloader written in C# \
-Currently supports the following services:
-+ Wingfox (wingfox.com, yiihuu.cc)
-+ Yiihuu (yiihuu.com)
+PolyV (Version 11, 12, 13) Downloader written in C#
 
 ### Compiling
 Make you've got all [Native AOT Prerequisities](https://aka.ms/nativeaot-prerequisites) installed. Then run:
@@ -12,13 +9,13 @@ dotnet publish -c Release
 ```
 
 ### Running
-Specify the service name, video ID and, if required, a cookie value to download a video. 
-The video ID is either in the URL (e.g. `https://www.wingfox.com/p/.../163118`) or a token network request (e.g. `https://www.yiihuu.com/polyv/polyv_get_token.php?vid=342770`).
-`<cookie>` is the value of a cookie sent in the polyv token request (e.g. `ule0khj2hl0b51j94stmhi2oeb`). Their respective names are given in the `--help` output.
+The downloader requires both a PolyV video URI and token found in the network tab:
++ Video URI: In the URL of this request: `https://player.polyv.net/secure/<HERE>.json`
++ Token: Response of a request similar to this: `https://.../polyv/polyv_get_token.php?video_id=123456`
 
-To download, for example, a wingfox video at **https://www.wingfox.com/p/.../163118** that requires a login (so a token, which is `ule0khj2hl0b51j94stmhi2oeb`) and download the resulting video to a folder called `download`, run:
+Then run:
 ```shell
-PolyVGet wingfox 163118 ule0khj2hl0b51j94stmhi2oeb -o download 
+PolyVGet 4e75d3d997e444a48be3913c77d1c8d8_4 85fc0eb0-c3ce-4c80-84ef-dbb3aa1cab99-t0
 ```
 
 > [!IMPORTANT]  
@@ -27,12 +24,11 @@ PolyVGet wingfox 163118 ule0khj2hl0b51j94stmhi2oeb -o download
 Commandline syntax:
 ```shell
 Usage:
-  PolyVGet <service> <videoId> [<cookie>] [options]
+  PolyVGet <videoUri> <token> [options]
 
 Arguments:
-  <service>  Service name
-  <videoId>  Video ID found in the token request or URL
-  <cookie>   Cookie required for requesting token
+  <videoUri>  Video URI (e.g. 4e75d3d997e444a48be3913c77d1c8d8_4)
+  <token>     PolyV Token (e.g. 85fc0eb0-c3ce-4c80-84ef-dbb3aa1cab99-t0)
 
 Options:
   -s, --subtitles                            Download the video's subtitles [default: False]

@@ -30,7 +30,7 @@ public class PolyVClient
         var key = uriHash[..16].Encode();
         var iv = uriHash[16..].Encode();
 
-        var decryptedBody = Util.DecryptAesCbc(key, iv, encryptedBody);
+        var decryptedBody = CryptoUtil.DecryptAesCbc(key, iv, encryptedBody);
         var jsonString = Convert.FromBase64String(decryptedBody.Decode()).Decode();
 
         VideoJson = JsonSerializer.Deserialize(jsonString, HttpUtil.Context.VideoJson)!;
@@ -55,7 +55,7 @@ public class PolyVClient
 
         var aesKey = MD5.HashData((constant + seedConst).Encode()).ToHex()[1..17].Encode();
         var ciphertext = Convert.FromBase64String(encryptedData!.Body);
-        var decrypted = Util.DecryptAesCbc(aesKey, iv, ciphertext);
+        var decrypted = CryptoUtil.DecryptAesCbc(aesKey, iv, ciphertext);
 
         return decrypted.Decode();
     }

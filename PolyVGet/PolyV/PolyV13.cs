@@ -108,12 +108,12 @@ public class PolyV13 : IPolyVImpl
         var mhHash = MD5.HashData(mh.ToString().Encode()).ToHex();
         var shiftedKey = CaesarShift(mhHash.Encode(), mh);
 
-        var unshuffledToken = Util.UnshuffleToken(token);
+        var unshuffledToken = CryptoUtil.UnshuffleToken(token);
         var tokenHash = MD5.HashData(unshuffledToken.Encode()).ToHex();
         var unshuffledTokenHash = UnshuffleHash(tokenHash.Encode());
 
         var keyHash = MD5.HashData([..unshuffledTokenHash, ..Md5Salt.Encode(), ..shiftedKey]).ToHex();
-        var decryptedKey = Util.DecryptAesCbc(keyHash.Substring(9, 16).Encode(), KeyIv, key);
+        var decryptedKey = CryptoUtil.DecryptAesCbc(keyHash.Substring(9, 16).Encode(), KeyIv, key);
         var unshuffledKey = UnshuffleKey(decryptedKey)[..16];
         
         return unshuffledKey;
@@ -121,8 +121,8 @@ public class PolyV13 : IPolyVImpl
 
     public byte[] DecryptFile(byte[] key, byte[] iv, byte[] encryptedData, int fragmentIndex)
     {
-        var decrypted = Util.DecryptAesCbc(key, iv, encryptedData);
-        var headerDecrypted = Util.DecryptHeader(decrypted, _headerKey, _headerIv, fragmentIndex, 1024);
+        var decrypted = CryptoUtil.DecryptAesCbc(key, iv, encryptedData);
+        var headerDecrypted = CryptoUtil.DecryptHeader(decrypted, _headerKey, _headerIv, fragmentIndex, 1024);
 
         return headerDecrypted;
     }

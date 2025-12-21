@@ -1,52 +1,16 @@
-﻿using System.Net;
-using PolyVGet.Misc;
+﻿using PolyVGet.Misc;
 using PolyVGet.PolyV;
-using PolyVGet.Services;
 using Spectre.Console;
 
 namespace PolyVGet;
 
-public class PolyVGet(IService service, string videoId, string outputDir)
+public class PolyVGet(string videoUri, string token, string outputDir)
 {
     public readonly PolyVClient PolyVClient = new();
 
-    public static readonly List<Func<IService>> Services =
-    [
-        () => new WingFox(),
-        () => new Yiihuu()
-    ];
-
-    public static PolyVGet WithService(string serviceName, string videoId, string cookie, string directory)
-    {
-        var service = Services.FirstOrDefault(service => service().Name() == serviceName);
-        if (service == null)
-            throw new ArgumentException("Service not found");
-
-        var serviceInstance = service();
-        HttpUtil.ClientHandler.CookieContainer.Add(new Cookie(serviceInstance.CookieName(), cookie, "/", serviceInstance.CookieDomain()));
-
-        Directory.CreateDirectory(directory);
-        
-        return new PolyVGet(serviceInstance, videoId, directory);
-    }
-
     public async Task Initialize()
     {
-        Logger.LogInfo($"Loading Video ID {videoId}");
-        string videoUri;
-
-        try
-        {
-            videoUri = await service.GetVideoUri(videoId);
-        }
-        catch (HttpRequestException e)
-        {
-            throw new Exception("Unable to request token. Did you add the correct cookie to your command?", e);
-        }
-        
-        Logger.LogDebug($"VideoUri: {videoUri}");
-        
-        Logger.LogInfo("Getting Video Data...");
+        Logger.LogInfo($"Loading Video URI {videoUri}...");
         await PolyVClient.LoadVideoJson(videoUri);
 
         Logger.LogInfo($"PolyV Version: {PolyVClient.Version}");
@@ -55,8 +19,6 @@ public class PolyVGet(IService service, string videoId, string outputDir)
     private async Task<byte[]> GetHlsKey(string keyUrl)
     {
         var subpath = PolyVClient.VideoJson.HlsPrivate == null ? "/playsafe/v1104" : $"/playsafe/v{PolyVClient.Version}";
-        
-        var token = await service.GetToken(videoId);
         var tokenId = Util.ParseToken(token);
         
         var newKeyUrl = Util.ModifyKeyUrl(keyUrl, subpath, token);
@@ -85,16 +47,16 @@ public class PolyVGet(IService service, string videoId, string outputDir)
             var task = ctx.AddTask(taskName, new ProgressTaskSettings { AutoStart = false });
             task.MaxValue = playlist.Fragments.Count;
 
-            await Parallel.ForEachAsync(playlist.Fragments.WithIndex(), new ParallelOptions { MaxDegreeOfParallelism = maxThreads }, async (fragment,token) =>
+            await Parallel.ForEachAsync(playlist.Fragments.Select((item, index) => (Item: item, Index: index)), new ParallelOptions { MaxDegreeOfParallelism = maxThreads }, async (fragment, cToken) =>
             {
                 var outFile = Path.Combine(tempDir, $"{fragment.Index}.bin");
 
-                var response = await HttpUtil.GetBytesAsync(fragment.Item, null, token);
+                var response = await HttpUtil.GetBytesAsync(fragment.Item, null, cToken);
                 Logger.LogDebug($"Downloaded fragment {fragment.Index}");
             
                 var decrypted = PolyVClient.PolyVImpl.DecryptFile(key, playlist.Iv!, response, fragment.Index);
 
-                await File.WriteAllBytesAsync(outFile, decrypted, token);
+                await File.WriteAllBytesAsync(outFile, decrypted, cToken);
             
                 task.Increment(1);
             });
@@ -114,14 +76,13 @@ public class PolyVGet(IService service, string videoId, string outputDir)
         Logger.LogDebug($"HLS Key: {hlsKey.ToHex()} IV: {playlist.Iv!.ToHex()}");
         Logger.LogInfo("Downloading...");
 
-        var fragmentsDirName = Guid.NewGuid().ToString();
-        var fragmentsDir = Path.Combine(outputDir, fragmentsDirName);
+        var fragmentsDir = Path.Combine(outputDir, videoUri);
 
         await DownloadFragments(playlist, resolution, hlsKey, fragmentsDir, maxThreads);
 
         Logger.LogInfo("Merging...");
 
-        var mergedFile = Path.Combine(outputDir, $"{fragmentsDirName}.ts");
+        var mergedFile = Path.Combine(outputDir, $"{videoUri}.ts");
         
         Util.MergeFiles(fragmentsDir, mergedFile);
         Directory.Delete(fragmentsDir, true);
@@ -131,7 +92,7 @@ public class PolyVGet(IService service, string videoId, string outputDir)
             Logger.LogInfo("Deobfuscating...");
             
             var encrypted = await File.ReadAllBytesAsync(mergedFile);
-            Util.MarsDeobfuscate(encrypted, mergedFile);
+            CryptoUtil.MarsDeobfuscate(encrypted, mergedFile);
             
             Logger.LogWarn("Use v13test.exe to play");
             
