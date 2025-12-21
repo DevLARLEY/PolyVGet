@@ -22,7 +22,7 @@ PolyVGet wingfox 163118 ule0khj2hl0b51j94stmhi2oeb -o download
 ```
 
 > [!IMPORTANT]  
-> The download will inform you to use v13text.exe for playback for v13 videos. Read this for more [info](#playback-of-v13-videos).
+> The downloader will inform you to use v13text.exe for playback for v13 videos. Read this for more [info](#playback-of-v13-videos).
 
 Commandline syntax:
 ```shell
