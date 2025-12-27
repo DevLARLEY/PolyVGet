@@ -4,7 +4,7 @@ using Spectre.Console;
 
 namespace PolyVGet;
 
-public class PolyVGet(string videoUri, string token, string outputDir)
+public class PolyVGet(string videoUri, string? token, string outputDir, bool overwrite)
 {
     public readonly PolyVClient PolyVClient = new();
 
@@ -12,16 +12,14 @@ public class PolyVGet(string videoUri, string token, string outputDir)
     {
         Logger.LogInfo($"Loading Video URI {videoUri}...");
         await PolyVClient.LoadVideoJson(videoUri);
-
-        Logger.LogInfo($"PolyV Version: {PolyVClient.Version}");
     }
     
     private async Task<byte[]> GetHlsKey(string keyUrl)
     {
-        var subpath = PolyVClient.VideoJson.HlsPrivate == null ? "/playsafe/v1104" : $"/playsafe/v{PolyVClient.Version}";
-        var tokenId = Util.ParseToken(token);
+        var subpath = PolyVClient.VideoJson.HlsPrivate == null ? "/playsafe/v1104" : $"/playsafe/v{PolyVClient.HlsVersion}";
+        var tokenId = Util.ParseToken(token!);
         
-        var newKeyUrl = Util.ModifyKeyUrl(keyUrl, subpath, token);
+        var newKeyUrl = Util.ModifyKeyUrl(keyUrl, subpath, token!);
         Logger.LogDebug($"Key URL: {newKeyUrl}");
         
         var responseBytes = await HttpUtil.GetBytesAsync(newKeyUrl);
@@ -62,65 +60,105 @@ public class PolyVGet(string videoUri, string token, string outputDir)
             });
         });
     }
-    
-    public async Task Download(string resolution, int maxThreads, bool subtitles)
+
+    private async Task DownloadMp4(string url, string taskName, string outFile)
     {
-        var resolutionIndex = PolyVClient.VideoJson.Resolution.IndexOf(resolution);
+        var progress = AnsiConsole
+            .Progress()
+            .Columns(
+                new TaskDescriptionColumn(),
+                new ProgressBarColumn(),
+                new PercentageColumn(),
+                new SpinnerColumn()
+            )
+            .AutoClear(true);
 
-        var manifestUrl = PolyVClient.VideoJson.Hls[resolutionIndex];
-        var manifest = await PolyVClient.GetManifest(manifestUrl, PolyVClient.VideoJson.SeedConst, PolyVClient.VideoJson.HlsPrivate);
-        var playlist = Util.ParsePlaylist(manifest);
-
-        var hlsKey = await GetHlsKey(playlist.KeyUrl!);
-        
-        Logger.LogDebug($"HLS Key: {hlsKey.ToHex()} IV: {playlist.Iv!.ToHex()}");
-        Logger.LogInfo("Downloading...");
-
-        var fragmentsDir = Path.Combine(outputDir, videoUri);
-
-        await DownloadFragments(playlist, resolution, hlsKey, fragmentsDir, maxThreads);
-
-        Logger.LogInfo("Merging...");
-
-        var mergedFile = Path.Combine(outputDir, $"{videoUri}.ts");
-        
-        Util.MergeFiles(fragmentsDir, mergedFile);
-        Directory.Delete(fragmentsDir, true);
-
-        if (PolyVClient.VideoJson.HlsPrivate == 2)
+        await progress.StartAsync(async ctx =>
         {
-            Logger.LogInfo("Deobfuscating...");
-            
-            var encrypted = await File.ReadAllBytesAsync(mergedFile);
-            CryptoUtil.MarsDeobfuscate(encrypted, mergedFile);
-            
-            Logger.LogWarn("Use v13test.exe to play");
-            
-            /*Logger.LogInfo("Re-encoding (this can take a while)...");
+            var task = ctx.AddTask(taskName, new ProgressTaskSettings { AutoStart = false });
 
-            using var process = new Process();
-            process.StartInfo = new ProcessStartInfo
+            await HttpUtil.GetProgressAsync(url, outFile, progress: new Progress<double>(value =>
             {
-                FileName = @"C:\Users\titus\tmp\build\ffmpeg\ffmpeg.exe",
-                Arguments = $"-y -i {tempFile} -c:v libx264 -c:a copy {finalFileName}",
-                UseShellExecute = false,
-                CreateNoWindow = true
-            };
+                task.Value = value;
+            }));
+        });
+    }
+    
+    public async Task Download(int resolutionIndex, int maxThreads, bool subtitles)
+    {
+        var finalFileName = Path.Combine(outputDir, PolyVClient.OutFileName);
 
-            process.Start();
-            await process.WaitForExitAsync();
-            File.Delete(tempFile);*/
+        if (!overwrite && File.Exists(finalFileName))
+            throw new Exception($"File \"{finalFileName}\" already exists. Use -y to overwrite");
+
+        if (PolyVClient.IsHls)
+        {
+            if (token == null)
+                throw new Exception("PolyV PlaySafe requires a token");
+            
+            Logger.LogInfo($"PolyV PlaySafe Version: {PolyVClient.HlsVersion}");
+            
+            var manifestUrl = PolyVClient.VideoJson.Hls![resolutionIndex];
+            var manifest = await PolyVClient.GetManifest(manifestUrl, PolyVClient.VideoJson.SeedConst, PolyVClient.VideoJson.HlsPrivate);
+            var playlist = Util.ParsePlaylist(manifest);
+
+            var hlsKey = await GetHlsKey(playlist.KeyUrl!);
+        
+            Logger.LogDebug($"HLS Key: {hlsKey.ToHex()} IV: {playlist.Iv!.ToHex()}");
+            Logger.LogInfo("Downloading...");
+
+            var fragmentsDir = Path.Combine(outputDir, videoUri);
+
+            await DownloadFragments(playlist, PolyVClient.QualityString(resolutionIndex), hlsKey, fragmentsDir, maxThreads);
+
+            Logger.LogInfo("Merging...");
+
+            var mergedFile = Path.Combine(outputDir, $"{videoUri}.ts");
+        
+            Util.MergeFiles(fragmentsDir, mergedFile);
+            Directory.Delete(fragmentsDir, true);
+
+            if (PolyVClient.VideoJson.HlsPrivate == 2)
+            {
+                Logger.LogInfo("Deobfuscating...");
+            
+                var encrypted = await File.ReadAllBytesAsync(mergedFile);
+                CryptoUtil.MarsDeobfuscate(encrypted, mergedFile);
+            
+                Logger.LogWarn("Use v13test.exe to play");
+            
+                /*Logger.LogInfo("Re-encoding (this can take a while)...");
+
+                using var process = new Process();
+                process.StartInfo = new ProcessStartInfo
+                {
+                    FileName = @"C:\Users\titus\tmp\build\ffmpeg\ffmpeg.exe",
+                    Arguments = $"-y -i {tempFile} -c:v libx264 -c:a copy {finalFileName}",
+                    UseShellExecute = false,
+                    CreateNoWindow = true
+                };
+
+                process.Start();
+                await process.WaitForExitAsync();
+                File.Delete(tempFile);*/
+            }
+        
+            File.Move(mergedFile, finalFileName, true);
         }
+        else
+        {
+            Logger.LogInfo("Downloading PolyV MP4...");
 
-        var finalFileName = Path.Combine(outputDir, $"{PolyVClient.VideoJson.Title}.ts");
-        File.Move(mergedFile, finalFileName, true);
+            var mp4Url = (PolyVClient.VideoJson.H5PcMp4 ?? PolyVClient.VideoJson.Mp4)![resolutionIndex];
+            await DownloadMp4(mp4Url, PolyVClient.QualityString(resolutionIndex), finalFileName);
+        }
 
         Logger.LogInfo($"Saved as: {finalFileName}");
 
         if (subtitles)
         {
             Logger.LogInfo("Downloading subtitles...");
-            await PolyVClient.DownloadSubtitles(outputDir);
+            await PolyVClient.TryDownloadSubtitles(outputDir);
         }
         
         Logger.LogInfo("Done");

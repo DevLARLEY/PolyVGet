@@ -1,6 +1,6 @@
 ﻿## PolyVGet
 
-PolyV (Version 11, 12, 13) Downloader written in C#
+PolyV (Version 11, 12, 13, Mp4) Downloader written in C#
 
 ### Compiling
 Make sure you've got all [Native AOT Prerequisities](https://aka.ms/nativeaot-prerequisites) installed. Then run:
@@ -9,7 +9,7 @@ dotnet publish -c Release
 ```
 
 ### Running
-The downloader requires both a PolyV video URI and token found in the network tab:
+The downloader requires both a PolyV video URI and optionally a token found in the network tab (for HLS):
 + Video URI: In the URL of this request: `https://player.polyv.net/secure/<HERE>.json`
 + Token: In the URL query of this request: `https://hls.videocc.net/playsafe/../../../...key?token=<HERE>`
 
@@ -24,16 +24,18 @@ PolyVGet 4e75d3d997e444a48be3913c77d1c8d8_4 85fc0eb0-c3ce-4c80-84ef-dbb3aa1cab99
 Commandline syntax:
 ```shell
 Usage:
-  PolyVGet <videoUri> <token> [options]
+  PolyVGet <videoUri> [<token>] [options]
 
 Arguments:
   <videoUri>  Video URI (e.g. 4e75d3d997e444a48be3913c77d1c8d8_4)
-  <token>     PolyV Token (e.g. 85fc0eb0-c3ce-4c80-84ef-dbb3aa1cab99-t0)
+  <token>     PolyV PlaySafe Token (e.g. 85fc0eb0-c3ce-4c80-84ef-dbb3aa1cab99-t0)
 
 Options:
+  -q, --quality <Best|Medium|Worst>          Set the video quality to download []
   -s, --subtitles                            Download the video's subtitles [default: False]
   -t, --max-threads <max-threads>            Maximum number of threads [default: 4]
   -o, --output-directory <output-directory>  Output directory [default: .]
+  -y, --overwrite                            Overwrite existing file [default: False]
   -l, --log-level <Debug|Fatal|Info|Warn>    Level of log output [default: Info]
   --version                                  Show version information
   -?, -h, --help                             Show help and usage information

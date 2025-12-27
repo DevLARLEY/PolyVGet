@@ -17,7 +17,23 @@ public class PolyVClient
     public VideoJson VideoJson { get; private set; } = null!;
     public IPolyVImpl PolyVImpl { get; private set; } = null!;
 
-    public int Version => (VideoJson.HlsPrivate ?? 0) + 11;
+    public int HlsVersion => (VideoJson.HlsPrivate ?? 0) + 11;
+    public bool IsHls => VideoJson.Seed != 0;
+
+    public string OutFileName => $"{VideoJson.Title}.{(IsHls ? "ts" : "mp4")}";
+
+    public string QualityString(int i)
+    {
+        var s = VideoJson.Resolution[i];
+        
+        if (VideoJson.Bitrate != null)
+            s += $", {VideoJson.Bitrate.Split(',')[i]} kbps";
+
+        var filesizes = IsHls ? VideoJson.TsFilesize : VideoJson.Filesize;
+        s += $" ({filesizes![i] / 1_000_000d:0.##} MB)";
+
+        return s;
+    }
     
     public async Task LoadVideoJson(string videoUri)
     {
@@ -33,6 +49,8 @@ public class PolyVClient
         var decryptedBody = CryptoUtil.DecryptAesCbc(key, iv, encryptedBody);
         var jsonString = Convert.FromBase64String(decryptedBody.Decode()).Decode();
 
+        Logger.LogDebug(jsonString);
+        
         VideoJson = JsonSerializer.Deserialize(jsonString, HttpUtil.Context.VideoJson)!;
         PolyVImpl = VideoJson.HlsPrivate switch
         {
@@ -60,7 +78,7 @@ public class PolyVClient
         return decrypted.Decode();
     }
 
-    public async Task DownloadSubtitles(string outputDir)
+    public async Task TryDownloadSubtitles(string outputDir)
     {
         if (VideoJson.Srt != null)
         {
