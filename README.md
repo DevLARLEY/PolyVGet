@@ -13,9 +13,13 @@ The downloader requires both a PolyV video URI and optionally a token found in t
 + Video URI: In the URL of this request: `https://player.polyv.net/secure/<HERE>.json`
 + Token: In the URL query of this request: `https://hls.videocc.net/playsafe/../../../...key?token=<HERE>`
 
-Then run:
+Then run (HLS):
 ```shell
 PolyVGet 4e75d3d997e444a48be3913c77d1c8d8_4 85fc0eb0-c3ce-4c80-84ef-dbb3aa1cab99-t0
+```
+or for Mp4:
+```shell
+PolyVGet 4e75d3d997e444a48be3913c77d1c8d8_4
 ```
 
 > [!IMPORTANT]  
