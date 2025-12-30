@@ -11,16 +11,45 @@ public static class Util
 
     private static Dictionary<string, string> ParseHlsLine(string line)
     {
-        var attributes = new Dictionary<string, string>();
+        var colonIndex = line.IndexOf(':');
+        if (colonIndex >= 0)
+            line = line[(colonIndex + 1)..];
         
-        var split = line.Split(',');
-        foreach (var s in split)
-        {
-            var subSplit = s.Split("=");
-            attributes[subSplit[0]] = subSplit[1].Trim('"');
-        }
+        var attributes = new Dictionary<string, string>();
 
+        var isMethod = true;
+        var method = new StringBuilder();
+        var content = new StringBuilder();
+        
+        for (var i = 0; i < line.Length; i++)
+        {
+            var c = line[i];
+            
+            if (c == '=' && isMethod)
+            {
+                isMethod = false;
+            }
+            else if (c == ',')
+            {
+                attributes[method.ToString()] = content.ToString().Trim('"');
+                method.Clear();
+                content.Clear();
+                isMethod = true;
+            }
+            else if (isMethod)
+            {
+                method.Append(c);
+            }
+            else
+            {
+                content.Append(c);
+                if (i == line.Length - 1)
+                    attributes[method.ToString()] = content.ToString().Trim('"');
+            }
+        }
+    
         return attributes;
+            
     }
     
     public static Playlist ParsePlaylist(string content)
@@ -35,7 +64,7 @@ public static class Util
         {
             if (line.StartsWith("#EXT-X-KEY:"))
             {
-                var attributes = ParseHlsLine(line[11..]);
+                var attributes = ParseHlsLine(line);
                 keyUrl = attributes["URI"];
                 iv = Convert.FromHexString(attributes["IV"][2..]);
             } 
@@ -53,26 +82,45 @@ public static class Util
         };
     }
 
-    public static string ParseToken(string token)
+    public static string FixVideoUri(string videoUri)
     {
-        var split = token.Split('-');
-        return split[^1][1..];
+        var split = videoUri.Split("_");
+        return $"{split[0]}_{videoUri[0]}";
     }
     
-    public static string ModifyKeyUrl(string originalUrl, string path, string token)
+    public static string FixLegacyMp4Url(string input)
     {
-        var uri = new Uri(originalUrl);
+        var uri = new Uri(input);
+        
+        var hostParts = uri.Host.Split('.');
+        if (hostParts.Length < 2)
+            return input;
 
-        var uriBuilder = new UriBuilder(uri)
+        var builder = new UriBuilder(uri)
         {
-            Path = path + uri.AbsolutePath,
+            Host = $"{hostParts[0]}.videocc.net"
         };
 
-        var query = HttpUtility.ParseQueryString(uriBuilder.Query);
-        query["token"] = token;
-        uriBuilder.Query = query.ToString();
+        return builder.ToString();
+    }
+    
+    public static string GeneratePid()
+    {
+        var timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+        var value = (int)(Random.Shared.NextDouble() * 1_000_000 + 1_000_000);
+        
+        return timestamp + "X" + value;
+    }
+    
+    public static string AddUrlQueryParams(UriBuilder builder, params (string Key, string Value)[] parameters)
+    {
+        var query = HttpUtility.ParseQueryString(builder.Query);
 
-        return uriBuilder.Uri.ToString();
+        foreach (var (key, value) in parameters)
+            query[key] = value;
+        
+        builder.Query = query.ToString();
+        return builder.ToString();
     }
 
     public static void MergeFiles(string filesDir, string outFile)

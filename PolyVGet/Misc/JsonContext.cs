@@ -44,6 +44,15 @@ public class VideoJson
 
     public List<string>? Hls { get; set; }
     
+    [JsonPropertyName("hls2")]
+    public List<string>? Hls2 { get; set; }
+    
+    [JsonPropertyName("hls2pc")]
+    public List<string>? Hls2Pc { get; set; }
+    
+    [JsonPropertyName("hls302")]
+    public string? Hls302 { get; set; }
+    
     [JsonPropertyName("h5pcmp4")]
     public List<string>? H5PcMp4 { get; set; }
     

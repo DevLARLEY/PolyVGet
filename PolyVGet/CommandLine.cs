@@ -1,9 +1,7 @@
 ﻿using System.CommandLine;
 using System.CommandLine.Builder;
-using System.CommandLine.Help;
 using System.CommandLine.NamingConventionBinder;
 using System.CommandLine.Parsing;
-using System.Runtime.InteropServices.Swift;
 using PolyVGet.Misc;
 using Spectre.Console;
 
@@ -58,7 +56,8 @@ public static class CommandLine
         
         try
         {
-            var polyV = new PolyVGet(videoUri, token, outputDirectory, overwrite);
+            var vid = Util.FixVideoUri(videoUri);
+            var polyV = new PolyVGet(vid, token, outputDirectory, overwrite);
             await polyV.Initialize();
 
             if (polyV.PolyVClient.VideoJson.Resolution.Count == 1)

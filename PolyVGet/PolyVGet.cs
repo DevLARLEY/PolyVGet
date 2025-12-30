@@ -6,24 +6,12 @@ namespace PolyVGet;
 
 public class PolyVGet(string videoUri, string? token, string outputDir, bool overwrite)
 {
-    public readonly PolyVClient PolyVClient = new();
+    public readonly PolyVClient PolyVClient = new(token);
 
     public async Task Initialize()
     {
         Logger.LogInfo($"Loading Video URI {videoUri}...");
         await PolyVClient.LoadVideoJson(videoUri);
-    }
-    
-    private async Task<byte[]> GetHlsKey(string keyUrl)
-    {
-        var subpath = PolyVClient.VideoJson.HlsPrivate == null ? "/playsafe/v1104" : $"/playsafe/v{PolyVClient.HlsVersion}";
-        var tokenId = Util.ParseToken(token!);
-        
-        var newKeyUrl = Util.ModifyKeyUrl(keyUrl, subpath, token!);
-        Logger.LogDebug($"Key URL: {newKeyUrl}");
-        
-        var responseBytes = await HttpUtil.GetBytesAsync(newKeyUrl);
-        return PolyVClient.PolyVImpl.DecryptKey(responseBytes, PolyVClient.VideoJson.SeedConst, tokenId);
     }
 
     private async Task DownloadFragments(Playlist playlist, string taskName, byte[] key, string tempDir, int maxThreads)
@@ -61,7 +49,7 @@ public class PolyVGet(string videoUri, string? token, string outputDir, bool ove
         });
     }
 
-    private async Task DownloadMp4(string url, string taskName, string outFile)
+    private static async Task DownloadMp4(string url, string taskName, string outFile)
     {
         var progress = AnsiConsole
             .Progress()
@@ -98,12 +86,12 @@ public class PolyVGet(string videoUri, string? token, string outputDir, bool ove
             
             Logger.LogInfo($"PolyV PlaySafe Version: {PolyVClient.HlsVersion}");
             
-            var manifestUrl = PolyVClient.VideoJson.Hls![resolutionIndex];
-            var manifest = await PolyVClient.GetManifest(manifestUrl, PolyVClient.VideoJson.SeedConst, PolyVClient.VideoJson.HlsPrivate);
+            var manifestUrl = PolyVClient.HlsList[resolutionIndex];
+            var manifest = await PolyVClient.GetManifest(manifestUrl);
             var playlist = Util.ParsePlaylist(manifest);
 
-            var hlsKey = await GetHlsKey(playlist.KeyUrl!);
-        
+            var hlsKey = await PolyVClient.GetHlsKey(playlist.KeyUrl!);
+
             Logger.LogDebug($"HLS Key: {hlsKey.ToHex()} IV: {playlist.Iv!.ToHex()}");
             Logger.LogInfo("Downloading...");
 
@@ -149,7 +137,7 @@ public class PolyVGet(string videoUri, string? token, string outputDir, bool ove
         {
             Logger.LogInfo("Downloading PolyV MP4...");
 
-            var mp4Url = (PolyVClient.VideoJson.H5PcMp4 ?? PolyVClient.VideoJson.Mp4)![resolutionIndex];
+            var mp4Url = Util.FixLegacyMp4Url(PolyVClient.Mp4List[resolutionIndex]);
             await DownloadMp4(mp4Url, PolyVClient.QualityString(resolutionIndex), finalFileName);
         }
 

@@ -68,9 +68,8 @@ public class PolyV11 : IPolyVImpl
 
         var keyHash = MD5.HashData([..Md5Salt.Encode(), ..shiftedKey, ..unshuffledTokenHash]).ToHex();
         var decryptedKey = CryptoUtil.DecryptAesCbc(keyHash.Substring(7, 16).Encode(), KeyIv, key);
-        var unshuffledKey = UnshuffleKey(decryptedKey);
         
-        return unshuffledKey;
+        return UnshuffleKey(decryptedKey);
     }
 
     public byte[] DecryptFile(byte[] key, byte[] iv, byte[] encryptedData, int fragmentIndex)

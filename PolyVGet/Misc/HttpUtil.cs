@@ -46,6 +46,8 @@ public static class HttpUtil
         HttpMethod? method = null,
         HttpCompletionOption httpCompletionOption = HttpCompletionOption.ResponseContentRead)
     {
+        Logger.LogDebug($"[{method ?? HttpMethod.Get}]: {url}");
+        
         using var httpRequest = new HttpRequestMessage(method ?? HttpMethod.Get, url);
         
         if (headers != null)
