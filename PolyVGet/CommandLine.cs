@@ -60,13 +60,22 @@ public static class CommandLine
             var polyV = new PolyVGet(vid, token, outputDirectory, overwrite);
             await polyV.Initialize();
 
-            if (polyV.PolyVClient.VideoJson.Resolution.Count == 1)
+            var resolutions = polyV.PolyVClient.VideoJson.Resolution;
+
+            if (resolutions.Count == 0)
             {
+                Logger.LogFatal("No qualities available.");
+                return;
+            }
+            
+            if (resolutions.Count == 1)
+            {
+                Logger.LogInfo($"Auto-selected the only available quality: {polyV.PolyVClient.QualityString(0)}");
                 await polyV.Download(0, maxThreads, subtitles);
                 return;
             }
  
-            var qualities = Enumerable.Range(0, polyV.PolyVClient.VideoJson.Resolution.Count)
+            var qualities = Enumerable.Range(0, resolutions.Count)
                 .Select(i => new QualityItem(i, polyV.PolyVClient.QualityString(i)))
                 .ToList();
 

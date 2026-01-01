@@ -106,7 +106,7 @@ public class PolyVGet(string videoUri, string? token, string outputDir, bool ove
             Util.MergeFiles(fragmentsDir, mergedFile);
             Directory.Delete(fragmentsDir, true);
 
-            if (PolyVClient.VideoJson.HlsPrivate == 2)
+            if (PolyVClient.HlsVersion == 13)
             {
                 Logger.LogInfo("Deobfuscating...");
             
@@ -114,21 +114,6 @@ public class PolyVGet(string videoUri, string? token, string outputDir, bool ove
                 CryptoUtil.MarsDeobfuscate(encrypted, mergedFile);
             
                 Logger.LogWarn("Use v13test.exe to play");
-            
-                /*Logger.LogInfo("Re-encoding (this can take a while)...");
-
-                using var process = new Process();
-                process.StartInfo = new ProcessStartInfo
-                {
-                    FileName = @"C:\Users\titus\tmp\build\ffmpeg\ffmpeg.exe",
-                    Arguments = $"-y -i {tempFile} -c:v libx264 -c:a copy {finalFileName}",
-                    UseShellExecute = false,
-                    CreateNoWindow = true
-                };
-
-                process.Start();
-                await process.WaitForExitAsync();
-                File.Delete(tempFile);*/
             }
         
             File.Move(mergedFile, finalFileName, true);

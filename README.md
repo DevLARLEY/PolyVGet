@@ -25,26 +25,6 @@ PolyVGet 4e75d3d997e444a48be3913c77d1c8d8_4
 > [!IMPORTANT]  
 > The downloader will inform you to use v13text.exe for playback for v13 videos. Read this for more [info](#playback-of-v13-videos).
 
-Commandline syntax:
-```shell
-Usage:
-  PolyVGet <videoUri> [<token>] [options]
-
-Arguments:
-  <videoUri>  Video URI (e.g. 4e75d3d997e444a48be3913c77d1c8d8_4)
-  <token>     PolyV PlaySafe Token (e.g. 85fc0eb0-c3ce-4c80-84ef-dbb3aa1cab99-t0)
-
-Options:
-  -q, --quality <Best|Medium|Worst>          Set the video quality to download []
-  -s, --subtitles                            Download the video's subtitles [default: False]
-  -t, --max-threads <max-threads>            Maximum number of threads [default: 4]
-  -o, --output-directory <output-directory>  Output directory [default: .]
-  -y, --overwrite                            Overwrite existing file [default: False]
-  -l, --log-level <Debug|Fatal|Info|Warn>    Level of log output [default: Info]
-  --version                                  Show version information
-  -?, -h, --help                             Show help and usage information
-```
-
 ### Playback of v13 videos
 There are two methods of playing these videos:
 + [v13test.exe](https://nicaicai.lanzouo.com/ifpNd2537aad), a tool taken from [a thread on 52PoJie.cn](https://www.52pojie.cn/thread-1945942-1-1.html) that can **play** downloaded files without any issues. This is only a player and conversion to a playable video format using this program is not possible. To play, run `v13test.exe` and enter the file path to the downloaded video. mpv will open, allowing you to play the video normally. This program was originally written in Python and then compiled to C using Nuitka, making .pyc file recovery impossible.
