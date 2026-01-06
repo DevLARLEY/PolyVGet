@@ -72,7 +72,12 @@ public class PolyVClient(string? token)
 
         var keyUriBuilder = new UriBuilder(keyUrl);
         keyUriBuilder.Path = subpath + keyUriBuilder.Path;
-        var newKeyUrl = keyUriBuilder.ToString();
+        
+        var newKeyUrl = Util.AddUrlQueryParams(
+            keyUriBuilder,
+            ("pid", Pid),
+            ("token", token!)
+        );
 
         byte[] responseBytes;
         
