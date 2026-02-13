@@ -34,10 +34,10 @@ public class VideoJson
     public string? Bitrate { get; set; }
 
     [JsonPropertyName("tsfilesize")]
-    public List<int>? TsFilesize { get; set; }
+    public List<ulong>? TsFilesize { get; set; }
     
     [JsonPropertyName("filesize")]
-    public List<int>? Filesize { get; set; }
+    public List<ulong>? Filesize { get; set; }
     
     [JsonPropertyName("hlsPrivate")]
     public int? HlsPrivate { get; set; }
