@@ -68,15 +68,16 @@ public static class CryptoUtil
     public static string UnshuffleToken(string encodedString)
     {
         const string cipherChars = "lpmkenjibhuvgycftxdrzsoawq0126783459";
-        const string plainChars = "abcdofghijklnmepqrstuvwxyz0123456789";
-        
+        const string plainChars  = "abcdofghijklnmepqrstuvwxyz0123456789";
+
         var result = new StringBuilder();
-        
-        foreach (var currentChar in encodedString)
+
+        foreach (var c in encodedString)
         {
-            result.Append(plainChars[cipherChars.IndexOf(currentChar)]);
+            var i = cipherChars.IndexOf(c);
+            result.Append(i == -1 ? c : plainChars[i]);
         }
-        
+
         return result.ToString();
     }
     
