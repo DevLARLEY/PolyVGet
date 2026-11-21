@@ -109,14 +109,20 @@ public class PolyVGet(string videoUri, string? token, string outputDir, bool ove
             if (PolyVClient.HlsVersion == 13)
             {
                 Logger.LogInfo("Deobfuscating...");
-            
-                var encrypted = await File.ReadAllBytesAsync(mergedFile);
-                CryptoUtil.MarsDeobfuscate(encrypted, mergedFile);
+
+                await using var inStream = new FileStream(mergedFile, FileMode.Open);
+                await using var outStream = new FileStream(finalFileName, FileMode.Create);
+                
+                CryptoUtil.MarsDeobfuscate(inStream, outStream);
+
+                File.Delete(mergedFile);
             
                 Logger.LogWarn("Use v13test.exe to play");
             }
-        
-            File.Move(mergedFile, finalFileName, true);
+            else
+            {
+                File.Move(mergedFile, finalFileName, true);
+            }
         }
         else
         {

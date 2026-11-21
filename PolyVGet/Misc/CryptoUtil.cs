@@ -133,13 +133,12 @@ public static class CryptoUtil
 
     private static sbyte Signed(byte val) => unchecked((sbyte)val);
     
-    public static void MarsDeobfuscate(byte[] data, string outFile)
+    public static void MarsDeobfuscate(Stream inStream, Stream outStream)
     {
-        var inStream = new MemoryStream(data);
         var readStream = new Mpeg2TransportStream(inStream, false);
         var streamReader = new Mpeg2TransportStreamReader(readStream);
-        
-        var writeStream = Mpeg2TransportStream.OpenTs(outFile, FileMode.OpenOrCreate, FileAccess.Write);
+
+        var writeStream = new Mpeg2TransportStream(outStream, false);
         var streamWriter = new Mpeg2TransportStreamWriter(writeStream);
 
         var pidMap = new Dictionary<ushort, StreamType>();
@@ -173,13 +172,13 @@ public static class CryptoUtil
                 }
                 var pesData = pesPacket.Data!;
                                 
-                var outStream = new MemoryStream();
+                var nalStream = new MemoryStream();
                 foreach ((int Start, int End) nalUnit in FindNalUnits(pesData))
                 {
                     var nalUnitLength = pesData[nalUnit.Start + 2] == 1 ? 3 : 4;
                     var dataStart = nalUnit.Start + nalUnitLength;
                                     
-                    outStream.Write(pesData, nalUnit.Start, nalUnitLength);
+                    nalStream.Write(pesData, nalUnit.Start, nalUnitLength);
 
                     var marsByte = pesData[dataStart] | -128;
                     if ((byte)(marsByte ^ pesData[dataStart + 1]) != (byte)'m') goto skip;
@@ -195,7 +194,7 @@ public static class CryptoUtil
 
                     if (Signed(pesData[dataStart]) >= 0) goto skip;
                                     
-                    outStream.WriteByte(nalHeaderByte);
+                    nalStream.WriteByte(nalHeaderByte);
 
                     var obfuscationType = ((nalByte >> 3) & 31) - 1;
 
@@ -217,18 +216,18 @@ public static class CryptoUtil
                                 break;
                         }
                                             
-                        outStream.WriteByte(newByte);
+                        nalStream.WriteByte(newByte);
                     }
 
                     goto end;
                                     
                     skip:
-                    outStream.Write(pesData, dataStart, nalUnit.End - dataStart);
+                    nalStream.Write(pesData, dataStart, nalUnit.End - dataStart);
                                     
                     end:;
                 }
 
-                pesPacket.Data = outStream.ToArray();
+                pesPacket.Data = nalStream.ToArray();
                             
                 streamWriter.WritePesPacket(first.Header.Pid, pesPacket);
             }
