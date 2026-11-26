@@ -192,11 +192,12 @@ public static class CryptoUtil
                     var nalByte = (byte)(nalXorByte ^ pesData[dataStart + 5]);
                     var nalHeaderByte = (byte)(nalByte >> 3 | nalByte << 5);
 
-                    if (Signed(pesData[dataStart]) >= 0) goto skip;
-                                    
                     nalStream.WriteByte(nalHeaderByte);
 
-                    var obfuscationType = ((nalByte >> 3) & 31) - 1;
+                    // The sign bit of the first byte selects whether the payload is transformed
+                    // Bit 7 clear (positive) => copy the payload (obfuscationType -1 = no switch case)
+                    // bit 7 set (negative) => apply the obfuscation transform.
+                    var obfuscationType = Signed(pesData[dataStart]) >= 0 ? -1 : ((nalByte >> 3) & 31) - 1;
 
                     for (var i = dataStart + 14; i < nalUnit.End; i++)
                     {
